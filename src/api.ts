@@ -48,9 +48,48 @@ export async function fetchWeather(
     };
 }
 
-//TODO
-// export async function fetchResearch();
+type ResearchResponse = {
+    topic: string;
+    summary: string;
+    sources: string[];
+};
 
+// Longer topics are silently cut mid-word, and only the cut text is researched (research.md §3)
+const RESEARCH_TOPIC_MAX_LENGTH = 50;
+
+export async function fetchResearch(
+    topic: string,
+    abortSignal: AbortSignal,
+): Promise<ResearchResponse> {
+    // TODO: Instruct the agent if this max length before a tool call is made.
+    if (topic.length > RESEARCH_TOPIC_MAX_LENGTH)
+        throw new ElyosApiError(
+            `Topic is too long (${topic.length} characters). Use ${RESEARCH_TOPIC_MAX_LENGTH} or fewer.`,
+            false,
+        );
+
+    const body = await fetchElyosData(
+        "research",
+        { topic },
+        RESEARCH_API_TIMEOUT_MS,
+        abortSignal,
+    );
+    // Some responses return an empty {} with a 200 status. We should retry these.
+    if (typeof body.summary !== "string")
+        throw new ElyosApiError("Research returned an empty result", true);
+
+    // Some responses are an outdated summary from 2024 marked `cached: true`.
+    // Repeating the request usually returns a fresh one. Made the decision to retry
+    // but alternatively, we could just return it to the agent.
+    if (body.cached === true)
+        throw new ElyosApiError("Research returned an outdated result", true);
+
+    return {
+        topic: body.topic,
+        summary: body.summary,
+        sources: body.sources,
+    };
+}
 export class ElyosApiError extends Error {
     readonly retryable: boolean;
 
