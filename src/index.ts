@@ -63,4 +63,8 @@ async function main(): Promise<void> {
     rl.close();
 }
 
-main();
+main().catch(() => {
+    console.error("Unexpected error."); //let's not leak the error message for now it's unhandled
+    rl.close();
+    process.exit(1);
+});
