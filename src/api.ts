@@ -52,7 +52,7 @@ type ResearchResponse = {
     sources: string[];
 };
 
-// Longer topics are silently cut mid-word, and only the cut text is researched (research.md §3)
+// Longer topics are silently cut mid-word, and only the cut text is researched
 const RESEARCH_TOPIC_MAX_LENGTH = 50;
 
 export async function fetchResearch(
