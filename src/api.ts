@@ -1,6 +1,4 @@
-const BASE_URL =
-    process.env.ELYOS_BASE_URL ||
-    "https://elyos-interview-907656039105.europe-west2.run.app";
+const BASE_URL = process.env.ELYOS_BASE_URL;
 if (!BASE_URL) {
     console.error("BASE_URL is not set in .env");
     process.exit(1);
