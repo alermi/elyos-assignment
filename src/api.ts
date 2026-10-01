@@ -3,8 +3,8 @@ if (!BASE_URL) {
     console.error("BASE_URL is not set in .env");
     process.exit(1);
 }
-const API_KEY = process.env.ELYOS_API_KEY;
-if (!API_KEY) {
+const ELYOS_API_KEY = process.env.ELYOS_API_KEY;
+if (!ELYOS_API_KEY) {
     console.error("ELYOS_API_KEY is not set in .env");
     process.exit(1);
 }
@@ -120,7 +120,7 @@ async function fetchElyosData(
     let res: Response;
     try {
         res = await fetch(url, {
-            headers: { "X-API-Key": API_KEY! },
+            headers: { "X-API-Key": ELYOS_API_KEY! },
             signal: AbortSignal.any([
                 AbortSignal.timeout(timeoutMs),
                 abortSignal,
