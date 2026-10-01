@@ -59,7 +59,7 @@ export async function fetchResearch(
     topic: string,
     abortSignal: AbortSignal,
 ): Promise<ResearchResponse> {
-    // TODO: Instruct the agent if this max length before a tool call is made.
+    // TODO: Instruct the agent of this max length before a tool call is made.
     if (topic.length > RESEARCH_TOPIC_MAX_LENGTH)
         throw new ElyosApiError(
             `Topic is too long (${topic.length} characters). Use ${RESEARCH_TOPIC_MAX_LENGTH} or fewer.`,
