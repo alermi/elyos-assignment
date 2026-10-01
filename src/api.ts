@@ -13,7 +13,7 @@ if (!ELYOS_API_KEY) {
 const WEATHER_API_TIMEOUT_MS = 8000;
 const RESEARCH_API_TIMEOUT_MS = 9000;
 
-type WeatherResponse = {
+export type WeatherResponse = {
     location: string;
     temperature_c: number;
     condition: string;
@@ -46,7 +46,7 @@ export async function fetchWeather(
     };
 }
 
-type ResearchResponse = {
+export type ResearchResponse = {
     topic: string;
     summary: string;
     sources: string[];

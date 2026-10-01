@@ -3,7 +3,12 @@ import * as readline from "node:readline/promises";
 import OpenAI from "openai";
 import { toResponseInputItems } from "openai/lib/responses/ResponseInputItems.mjs";
 import { FunctionTool } from "openai/resources/responses/responses.mjs";
-import { fetchResearch, fetchWeather } from "./api";
+import {
+    fetchResearch,
+    fetchWeather,
+    ResearchResponse,
+    WeatherResponse,
+} from "./api";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 if (!OPENAI_API_KEY) {
@@ -130,11 +135,13 @@ async function* callLlm(
     }
 }
 
+type ToolOutput<T> = T | { error: string };
+
 /** Fetch weather from API (~200ms). */
 async function getWeather(
     location: string,
     signal: AbortSignal,
-): Promise<unknown> {
+): Promise<ToolOutput<WeatherResponse>> {
     if (!location) {
         return {
             error: "Location is required",
@@ -153,7 +160,7 @@ async function getWeather(
 async function researchTopic(
     topic: string,
     signal: AbortSignal,
-): Promise<unknown> {
+): Promise<ToolOutput<ResearchResponse>> {
     if (!topic) {
         return {
             error: "Topic is required",
