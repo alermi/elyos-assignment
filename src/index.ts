@@ -20,9 +20,6 @@ if (!OPENAI_API_KEY) {
 }
 const client = new OpenAI({ apiKey: OPENAI_API_KEY });
 
-// Placeholder shape; swap for the provider SDK's message type once chosen.
-type Message = { role: "user" | "assistant" | "tool"; content: string };
-
 const GET_WEATHER_FUNCTION_NAME = "get_weather";
 const RESEARCH_TOPIC_FUNCTION_NAME = "research_topic";
 
