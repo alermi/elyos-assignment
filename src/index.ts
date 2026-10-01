@@ -110,7 +110,6 @@ async function* callLlm(
             if (item.name === GET_WEATHER_FUNCTION_NAME) {
                 calledTool = true;
                 const { location } = JSON.parse(item.arguments);
-                //TODO: Error handling
                 const weatherOutput = await getWeather(location, signal);
                 const stringifiedOutput = JSON.stringify(weatherOutput);
 
@@ -123,7 +122,6 @@ async function* callLlm(
             if (item.name === RESEARCH_TOPIC_FUNCTION_NAME) {
                 calledTool = true;
                 const { topic } = JSON.parse(item.arguments);
-                //TODO: Error handling
 
                 yield `Researching ${topic}... (Ctrl+C to cancel)\n`;
                 const researchOutput = await researchTopic(topic, signal);
