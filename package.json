@@ -5,7 +5,9 @@
     "main": "index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "tsx --env-file=.env src/index.ts"
+        "start": "tsx --env-file=.env src/index.ts",
+        "stt": "tsx --env-file=.env playground/stt.ts",
+        "tts": "tsx --env-file=.env playground/tts.ts"
     },
     "keywords": [],
     "author": "",
@@ -17,6 +19,8 @@
         "typescript": "^7.0.2"
     },
     "dependencies": {
+        "@deepgram/sdk": "^5.13.0",
+        "@elevenlabs/elevenlabs-js": "^2.70.0",
         "openai": "^7.25.0"
     }
 }

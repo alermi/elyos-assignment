@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice SDKs Primer</title>
+<style>
+  :root {
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --text: #1d1d1f;
+    --muted: #5f6368;
+    --border: #e4e1db;
+    --accent: #3451c6;
+    --accent-soft: #edf0fc;
+    --code-bg: #f3f1ed;
+    --comment: #7a7f87;
+    --note-bg: #fff7e6;
+    --note-border: #e8b84a;
+    --ok: #2b8a3e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141416;
+      --surface: #1c1c1f;
+      --text: #ececee;
+      --muted: #a3a3ad;
+      --border: #303036;
+      --accent: #93a6ff;
+      --accent-soft: #1f2442;
+      --code-bg: #202024;
+      --comment: #8b8f99;
+      --note-bg: #2a2211;
+      --note-border: #8f7130;
+      --ok: #69db7c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141416;
+    --surface: #1c1c1f;
+    --text: #ececee;
+    --muted: #a3a3ad;
+    --border: #303036;
+    --accent: #93a6ff;
+    --accent-soft: #1f2442;
+    --code-bg: #202024;
+    --comment: #8b8f99;
+    --note-bg: #2a2211;
+    --note-border: #8f7130;
+    --ok: #69db7c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 800px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 6px; }
+  .subtitle { color: var(--muted); margin: 0 0 24px; }
+  h2 {
+    font-size: 1.3rem;
+    margin: 44px 0 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  h3 { font-size: 1.05rem; margin: 24px 0 8px; }
+  .time {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+  p, li { max-width: 72ch; }
+  ul { padding-left: 1.2em; }
+  li { margin: 4px 0; }
+  a { color: var(--accent); }
+  code {
+    font: 0.86em/1.5 ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 12px 0;
+  }
+  pre code { background: none; padding: 0; font-size: 0.82rem; }
+  .c { color: var(--comment); }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 16px 0;
+  }
+  .card > :first-child { margin-top: 0; }
+  .card > :last-child { margin-bottom: 0; }
+  .note {
+    background: var(--note-bg);
+    border-left: 4px solid var(--note-border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 16px 0;
+  }
+  .note > :first-child { margin-top: 0; }
+  .note > :last-child { margin-bottom: 0; }
+  .ok { color: var(--ok); font-weight: 600; }
+  .table-wrap { overflow-x: auto; margin: 12px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 0.82rem; }
+  .pipeline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 6px;
+    margin: 16px 0 8px;
+  }
+  .stage {
+    flex: 1 1 110px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.85rem;
+    line-height: 1.35;
+  }
+  .stage strong { display: block; font-size: 0.92rem; }
+  .stage span { color: var(--muted); }
+  .stage.new { border-color: var(--accent); }
+  .arrow {
+    align-self: center;
+    color: var(--muted);
+    font-size: 1.1rem;
+  }
+  .legend { font-size: 0.82rem; color: var(--muted); }
+  nav ol { columns: 2; column-gap: 32px; padding-left: 1.3em; margin: 8px 0 0; }
+  nav li { margin: 2px 0; }
+  @media (max-width: 560px) {
+    nav ol { columns: 1; }
+    .arrow { transform: rotate(90deg); flex-basis: 100%; text-align: center; }
+    .stage { flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Voice SDKs in 10 minutes</h1>
+<p class="subtitle">Deepgram (speech to text) and ElevenLabs (text to speech) for the Elyos onsite, mapped onto the chat CLI you already built.</p>
+
+<div class="card">
+  <p><strong>The short version</strong></p>
+  <ul>
+    <li><strong>Deepgram is the ears.</strong> A WebSocket you push raw audio into. It pushes JSON transcripts back: quick guesses first, then final text.</li>
+    <li><strong>ElevenLabs is the mouth.</strong> One HTTP request with text. Audio bytes stream back while the speech is still being generated.</li>
+    <li><strong>ffmpeg is the plumbing.</strong> Node can't open a microphone or a speaker by itself. ffmpeg records the mic as raw audio for Deepgram, and <code>ffplay</code> (which comes with ffmpeg) plays what ElevenLabs sends back.</li>
+    <li><strong>Your machine:</strong> both SDKs are installed, and <code>npm run stt</code> and <code>npm run tts</code> both <span class="ok">work end to end</span> with your keys.</li>
+  </ul>
+</div>
+
+<nav class="card" aria-label="Contents">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#pipeline">The pipeline</a></li>
+    <li><a href="#ffmpeg">Why ffmpeg</a></li>
+    <li><a href="#deepgram">Deepgram live STT</a></li>
+    <li><a href="#elevenlabs">ElevenLabs streaming TTS</a></li>
+    <li><a href="#cli">Plugging into your CLI</a></li>
+    <li><a href="#latency">Where the latency is</a></li>
+    <li><a href="#scale">100 concurrent calls</a></li>
+    <li><a href="#run">Run it</a></li>
+  </ol>
+</nav>
+
+<h2 id="pipeline">1. The pipeline <span class="time">1 min</span></h2>
+<p>This is the "mic input to speaker output" path the system design question asks you to walk through. Every arrow streams, so no stage waits for the previous one to finish.</p>
+
+<div class="pipeline" role="img" aria-label="Mic to ffmpeg to Deepgram to callLlm to ElevenLabs to ffplay to speaker">
+  <div class="stage"><strong>Mic</strong><span>sound</span></div>
+  <div class="arrow" aria-hidden="true">&rarr;</div>
+  <div class="stage new"><strong>ffmpeg</strong><span>16 kHz mono PCM, ~50 ms chunks</span></div>
+  <div class="arrow" aria-hidden="true">&rarr;</div>
+  <div class="stage new"><strong>Deepgram</strong><span>WebSocket, transcripts back</span></div>
+  <div class="arrow" aria-hidden="true">&rarr;</div>
+  <div class="stage"><strong>callLlm()</strong><span>OpenAI + tools (exists)</span></div>
+  <div class="arrow" aria-hidden="true">&rarr;</div>
+  <div class="stage new"><strong>ElevenLabs</strong><span>text in, audio streams out</span></div>
+  <div class="arrow" aria-hidden="true">&rarr;</div>
+  <div class="stage new"><strong>ffplay</strong><span>speaker</span></div>
+</div>
+<p class="legend">Blue outline = new pieces. The middle of the loop (history, tool calls, cancellation) is the code you already have.</p>
+
+<h2 id="ffmpeg">2. Why you were asked to install ffmpeg <span class="time">1 min</span></h2>
+<p>Node has no built-in microphone or speaker access. ffmpeg is the usual command-line tool for both, and it is what the SDKs' own helpers expect:</p>
+<ul>
+  <li><strong>ElevenLabs playback.</strong> The SDK's <code>play(audio)</code> helper spawns <code>ffplay</code> and fails with <em>"ffplay from ffmpeg not found"</em> if it's missing. Its <code>stream(audio)</code> helper spawns <code>mpv</code> instead. The README says the SDK "requires MPV and ffmpeg to play audio".</li>
+  <li><strong>Mic capture for Deepgram.</strong> <code>ffmpeg -f dshow -i audio="Microphone Array (Realtek(R) Audio)" -f s16le -ar 16000 -ac 1 -</code> writes raw PCM to stdout, and each chunk goes straight into <code>connection.sendMedia(chunk)</code>. On a Mac it's <code>-f avfoundation -i ":0"</code>, on Linux <code>-f pulse -i default</code>.</li>
+  <li><strong>Test audio without talking.</strong> ffmpeg converts any file or URL into the format Deepgram expects, and <code>-re</code> plays it at real-time speed so it behaves like a live caller. Your build can even speak a test sentence itself (<code>-f lavfi -i flite=text='...'</code>). That's what <code>npm run stt</code> does by default.</li>
+</ul>
+<div class="note">
+  <p><strong>The Python link.</strong> The Deepgram page in the brief is a 2022 Python "starter kit". It pins <code>aiohttp==3.7.4.post0</code>, which only has wheels for Python 3.6 to 3.9, so it won't <code>pip install</code> on your Python 3.11. Its mock server also uses pydub, which itself relies on ffmpeg. <code>playground/stt.ts</code> does the same job (file, URL or mic streamed to Deepgram) with the official TypeScript SDK.</p>
+</div>
+
+<h2 id="deepgram">3. Deepgram live speech-to-text <span class="time">3 min</span></h2>
+<p>Package <code>@deepgram/sdk</code> 5.13. Version 5 changed the API: tutorials that use <code>createClient()</code> or <code>LiveTranscriptionEvents</code> describe v3 and v4.</p>
+<pre><code>import { DeepgramClient } from "@deepgram/sdk";
+
+const deepgram = new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY });
+const connection = await deepgram.listen.v1.connect({
+    model: "nova-3",
+    encoding: "linear16",       <span class="c">// raw audio has no header, so say what it is</span>
+    sample_rate: 16000,
+    channels: 1,
+    interim_results: "true",    <span class="c">// v5 takes these flags as strings</span>
+    endpointing: 300,           <span class="c">// ms of silence before speech_final</span>
+    utterance_end_ms: 1000,     <span class="c">// end-of-utterance from gaps between words</span>
+    vad_events: "true",         <span class="c">// SpeechStarted, the cue for barge-in</span>
+});
+
+connection.on("message", (message) =&gt; { <span class="c">/* see the table below */</span> });
+connection.connect();               <span class="c">// v5 sockets start closed</span>
+await connection.waitForOpen();     <span class="c">// a bad key rejects here with a 401, in ~150 ms</span>
+
+for await (const chunk of ffmpeg.stdout) connection.sendMedia(chunk);
+connection.sendCloseStream({ type: "CloseStream" }); <span class="c">// send the last results, then close</span></code></pre>
+
+<h3>The messages you get back</h3>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Message</th><th>Meaning</th><th>What to do with it</th></tr></thead>
+  <tbody>
+    <tr><td><code>Results</code>, <code>is_final: false</code></td><td>Interim guess. It will be revised.</td><td>Live captions only.</td></tr>
+    <tr><td><code>Results</code>, <code>is_final: true</code></td><td>This piece of text won't change.</td><td>Append it to the current utterance.</td></tr>
+    <tr><td><code>Results</code>, <code>speech_final: true</code></td><td>A pause of at least <code>endpointing</code> ms was heard.</td><td>The utterance is complete. Send the buffer to the LLM.</td></tr>
+    <tr><td><code>UtteranceEnd</code></td><td>No new words for <code>utterance_end_ms</code>.</td><td>Backup end signal for when background noise stops <code>speech_final</code> from firing.</td></tr>
+    <tr><td><code>SpeechStarted</code></td><td>Voice activity started.</td><td>Barge-in: stop the agent talking.</td></tr>
+    <tr><td><code>Metadata</code></td><td>Sent on close, includes <code>request_id</code>.</td><td>Logs and support tickets.</td></tr>
+  </tbody>
+</table>
+</div>
+<p>A long sentence arrives as several <code>is_final</code> pieces before <code>speech_final</code>. So buffer the pieces and don't treat <code>speech_final</code> as the whole transcript. <code>stt.ts</code> does exactly this and prints a <code>&gt;&gt;&gt; utterance</code> line.</p>
+<p><strong>Measured on your machine</strong> (nova-3, synthesized sample): interim results arrived about once a second, each 0.2 to 0.37 s after its last word was spoken. The final result came about 0.34 s after speech ended, most of which is the 300 ms <code>endpointing</code> wait.</p>
+
+<h3>Gotchas worth saying out loud</h3>
+<ul>
+  <li><strong>Silence kills the socket.</strong> If no audio arrives for 10 s, Deepgram closes the connection (<code>NET-0001</code>). If you pause the mic, for example while the agent speaks, call <code>sendKeepAlive({ type: "KeepAlive" })</code> every 3 to 5 s.</li>
+  <li><strong>The format must match.</strong> <code>encoding</code> and <code>sample_rate</code> have to describe what ffmpeg actually produces. Wrong values give empty or garbled transcripts, not an error. For WAV or MP3 (audio with a header), leave both out.</li>
+  <li><strong>Graceful close vs hard stop.</strong> <code>sendCloseStream</code> waits for the final results. <code>close()</code> or an aborted <code>abortSignal</code> (a <code>connect()</code> option, so it fits your AbortController) stops at once and drops whatever is pending.</li>
+  <li><strong>Hidden reconnects.</strong> The socket reconnects up to 30 times by default after an unexpected close. That doesn't apply to a 401, which fails at once. Audio sent during the gap is lost and timestamps restart, so set <code>reconnectAttempts: 0</code> if you'd rather handle it yourself.</li>
+</ul>
+<div class="note">
+  <p><strong>If turn-taking comes up:</strong> Flux (<code>listen.v2.connect({ model: "flux-general-en", ... })</code>) is Deepgram's model built for voice agents. Instead of <code>is_final</code> and <code>speech_final</code>, it sends <code>TurnInfo</code> events: <code>StartOfTurn</code>, <code>EagerEndOfTurn</code> (start the LLM early), <code>TurnResumed</code> (throw that draft away) and <code>EndOfTurn</code>. It works best with 80 ms chunks.</p>
+</div>
+
+<h2 id="elevenlabs">4. ElevenLabs streaming text-to-speech <span class="time">2.5 min</span></h2>
+<p>Package <code>@elevenlabs/elevenlabs-js</code> 2.70. This is the HTTP streaming endpoint from the brief's link. Audio arrives as the voice is generated, so playback can start before generation ends.</p>
+<pre><code>import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
+
+const elevenlabs = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
+const audio = await elevenlabs.textToSpeech.stream(
+    "JBFqnCBsd6RMkjVDRZzb",                  <span class="c">// voice id ("George", a default voice)</span>
+    { text, modelId: "eleven_flash_v2_5", outputFormat: "pcm_24000" },
+    { abortSignal: controller.signal },      <span class="c">// per-request options</span>
+);
+for await (const chunk of audio) player.stdin.write(chunk);   <span class="c">// play while downloading</span></code></pre>
+<p><strong>Measured on your machine</strong> (Flash, PCM): the first audio arrived 0.51 s after the request, on a cold connection that includes TLS setup. The whole 3.3 s sentence had arrived by 0.63 s, so generation runs about 5 times faster than playback. Time to first byte is the number that matters.</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Choice</th><th>Options</th><th>For a voice agent</th></tr></thead>
+  <tbody>
+    <tr><td>Model</td><td><code>eleven_flash_v2_5</code> (~75 ms model latency), <code>eleven_multilingual_v2</code> (higher quality, slower). Newer v4 models are on the models page.</td><td>Flash. The Turbo v2.x models are deprecated.</td></tr>
+    <tr><td>Output format</td><td><code>mp3_44100_128</code> (default), <code>pcm_16000</code> to <code>pcm_48000</code>, <code>ulaw_8000</code>, <code>opus_48000_*</code></td><td>PCM locally, because there's nothing to decode. <code>ulaw_8000</code> for phone calls. <code>pcm_44100</code> needs the Pro plan.</td></tr>
+    <tr><td>Transport</td><td>HTTP stream (above), or the WebSocket <code>/stream-input</code></td><td>HTTP per sentence. The WebSocket when you feed LLM tokens directly.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<ul>
+  <li><strong>Interrupting playback.</strong> The SDK's <code>play()</code> and <code>stream()</code> are fine for demos, but you can't stop them mid-sentence. <code>tts.ts</code> spawns ffplay itself, so barge-in is <code>controller.abort()</code> plus <code>player.kill()</code>. Ctrl+C does exactly that.</li>
+  <li><strong>Built-in retries.</strong> The SDK retries 408, 429 and 5xx responses twice, waiting 1 s then 2 s, and it honours a <code>Retry-After</code> header of up to 60 s. On a live call, silence is worse than an error, so consider <code>maxRetries: 0</code> and speaking a fallback line. This links straight to the "add retry with backoff" question.</li>
+  <li><strong>Errors.</strong> Failures throw an <code>ElevenLabsError</code> with <code>statusCode</code> and <code>body.detail.status</code>, for example <code>"invalid_api_key"</code>. I checked this against the real API with a placeholder key.</li>
+</ul>
+<div class="note">
+  <p><strong>WebSocket input streaming</strong> (not wrapped by the JS SDK, so you'd use the <code>ws</code> package; not tried here):</p>
+<pre><code>wss://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream-input?model_id=eleven_flash_v2_5
+<span class="c">// header xi-api-key: ...</span>
+&rarr; {"text": " "}                               <span class="c">// first message opens the stream</span>
+&rarr; {"text": "The weather in Tokyo "}           <span class="c">// LLM deltas, each ending in a space</span>
+&rarr; {"text": "is sunny. ", "flush": true}       <span class="c">// end of the turn: generate now</span>
+&rarr; {"text": ""}                                <span class="c">// close</span>
+&larr; {"audio": "&lt;base64&gt;", "alignment": {...}} ... {"isFinal": true}</code></pre>
+  <p>The server buffers text until about 120, 160, 250 or 290 characters (<code>chunk_length_schedule</code>) unless you <code>flush</code>, and it closes after 20 s without input.</p>
+</div>
+
+<h2 id="cli">5. Plugging it into your CLI <span class="time">1.5 min</span></h2>
+<p>The likely pairing direction is "add real-time audio input (we'll provide the STT integration)". Here's how each piece maps onto your code:</p>
+<ul>
+  <li><strong>Input.</strong> Replace <code>getUserInput()</code> with "wait for the next utterance": a Promise that resolves on <code>speech_final</code> or <code>UtteranceEnd</code> with the buffered <code>is_final</code> text. The rest of <code>main()</code> stays the same.</li>
+  <li><strong>Output.</strong> <code>callLlm()</code> already yields text deltas. Buffer them up to a sentence boundary, send each sentence to <code>textToSpeech.stream</code>, and play the sentences in order. Sentence by sentence keeps the first audio early.</li>
+  <li><strong>Cancellation.</strong> Reuse the per-turn <code>AbortController</code>. Pass its signal to the TTS request and kill ffplay when it aborts. A <code>SpeechStarted</code> while the agent is talking becomes your Ctrl+C: barge-in is <code>controller.abort()</code>.</li>
+  <li><strong>Pending state.</strong> A spinner doesn't work on a phone call. During the 3 to 8 s research call, speak a filler line such as "Let me look that up."</li>
+  <li><strong>Echo.</strong> With speakers instead of headphones, the mic hears the agent. Either ignore transcripts while it speaks (and send KeepAlive) or rely on headphones for the demo.</li>
+</ul>
+
+<h2 id="latency">6. Where the latency is <span class="time">1 min</span></h2>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Stage</th><th>Typical</th><th>Knob</th></tr></thead>
+  <tbody>
+    <tr><td>Mic buffer</td><td>~50 ms</td><td><code>-audio_buffer_size</code> (the Windows default can be 500 ms)</td></tr>
+    <tr><td>Word to transcript</td><td>0.2 to 0.4 s (measured)</td><td>Region, model</td></tr>
+    <tr><td>End-of-speech detection</td><td>0.3 to 1 s</td><td><code>endpointing</code>, <code>utterance_end_ms</code>, Flux early end-of-turn</td></tr>
+    <tr><td>LLM first token</td><td>~0.3 to 1 s (not measured)</td><td>Model size, prompt and history length</td></tr>
+    <tr><td>Tool calls</td><td>weather ~0.2 s (4 to 7 s cold), research 3 to 8 s</td><td>Speak a filler, run calls in parallel</td></tr>
+    <tr><td>First full sentence</td><td>Depends on the reply</td><td>Flush at the first sentence or clause</td></tr>
+    <tr><td>TTS first byte</td><td>0.51 s measured on a cold connection (~75 ms of that is the Flash model)</td><td>Model, PCM output, region, keeping the connection warm</td></tr>
+    <tr><td>Player start</td><td>Process start-up</td><td>Start the player before the request (<code>tts.ts</code> does)</td></tr>
+  </tbody>
+</table>
+</div>
+<p>From the end of the user's speech to the first audio is usually 1 to 2 s. The biggest levers are end-of-speech detection and the LLM's first token. What keeps the total low is streaming at every stage: no stage waits for the previous one to finish.</p>
+
+<h2 id="scale">7. 100 concurrent calls <span class="time">1 min</span></h2>
+<ul>
+  <li><strong>Cost per call:</strong> one Deepgram socket, one LLM stream, and one TTS request per sentence. That's all network waiting, so a few Node processes can handle 100 calls. Don't run ffmpeg per call: phone audio (for example Twilio) is already μ-law 8 kHz, which Deepgram accepts (<code>encoding: "mulaw", sample_rate: 8000</code>) and ElevenLabs can output (<code>ulaw_8000</code>).</li>
+  <li><strong>What breaks first:</strong> provider concurrency caps. ElevenLabs Flash allows 4 concurrent requests on Free and 30 on Business. Deepgram streaming STT allows up to 150 on pay-as-you-go. After those come LLM rate limits.</li>
+  <li><strong>What to monitor, per turn:</strong> STT lag, LLM time to first token, TTS time to first byte, and end of speech to first audio (p50 and p95). Also socket closes and reconnects, 429s, and concurrency in use versus each cap.</li>
+  <li><strong>Failure modes:</strong> the STT socket drops mid-call (reconnect; timestamps restart at 0), a TTS 429 (queue or fall back), a slow tool (filler speech), the caller interrupts (abort and clear the audio queue).</li>
+</ul>
+
+<h2 id="run">8. Run it <span class="time">30 s</span></h2>
+<pre><code>npm run stt                          <span class="c"># ffmpeg speaks a test sentence, Deepgram transcribes it</span>
+npm run stt -- mic                   <span class="c"># first microphone ffmpeg lists</span>
+npm run stt -- path/or/url.mp3       <span class="c"># any file or URL ffmpeg can read</span>
+npm run tts -- "Hello from Elyos"    <span class="c"># streams and plays it; Ctrl+C interrupts</span></code></pre>
+<ul>
+  <li>To use the NVIDIA Broadcast mic (noise removal), set <code>MIC_DEVICE="Microphone (NVIDIA Broadcast)"</code>. Both mics opened fine in a 1 s test.</li>
+  <li>Each run takes a few seconds to start because loading each SDK takes 3 to 6 s on this machine. The printed timings start after loading.</li>
+  <li>Code: <code>playground/stt.ts</code> and <code>playground/tts.ts</code>, 135 and 76 lines.</li>
+</ul>
+
+</main>
+</body>
+</html>
