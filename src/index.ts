@@ -4,10 +4,12 @@ import OpenAI from "openai";
 import { toResponseInputItems } from "openai/lib/responses/ResponseInputItems.mjs";
 import { FunctionTool } from "openai/resources/responses/responses.mjs";
 import {
+    ElyosApiError,
     fetchResearch,
     fetchWeather,
     ResearchResponse,
     WeatherResponse,
+    withRetry,
 } from "./api";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -148,10 +150,13 @@ async function getWeather(
         };
     }
     try {
-        return await fetchWeather(location, signal);
+        return await withRetry<WeatherResponse>(
+            () => fetchWeather(location, signal),
+            signal,
+        );
     } catch (err) {
         if (signal.aborted) return { error: "Cancelled by the user" };
-        //TODO: Error handling
+        if (err instanceof ElyosApiError) return { error: err.message };
         throw err;
     }
 }
@@ -167,10 +172,13 @@ async function researchTopic(
         };
     }
     try {
-        return await fetchResearch(topic, signal);
+        return await withRetry<ResearchResponse>(
+            () => fetchResearch(topic, signal),
+            signal,
+        );
     } catch (err) {
         if (signal.aborted) return { error: "Cancelled by the user" };
-        //TODO: Error handling
+        if (err instanceof ElyosApiError) return { error: err.message };
         throw err;
     }
 }

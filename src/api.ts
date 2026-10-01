@@ -1,3 +1,5 @@
+import { setTimeout } from "node:timers/promises";
+
 const BASE_URL = process.env.ELYOS_BASE_URL;
 if (!BASE_URL) {
     console.error("BASE_URL is not set in .env");
@@ -144,4 +146,35 @@ async function fetchElyosData(
     if (body?.status === "throttled")
         throw new RateLimitError(Number(body.retry_after_seconds) || 30);
     return body;
+}
+
+const MAX_ATTEMPTS = 5;
+const MAX_WAIT_TIME_SECOND = 10;
+
+export async function withRetry<T>(
+    fn: () => Promise<T>,
+    signal: AbortSignal,
+): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+        let result: T;
+        try {
+            result = await fn();
+            return result;
+        } catch (err) {
+            if (attempt === MAX_ATTEMPTS) throw err;
+            if (!(err instanceof ElyosApiError)) throw err;
+            if (!err.retryable) throw err;
+            if (err instanceof RateLimitError) {
+                // If this returns a large number, we do not want to wait indefinitely.
+                if (
+                    err.retryAfterSeconds < 0 ||
+                    err.retryAfterSeconds > MAX_WAIT_TIME_SECOND
+                )
+                    throw err;
+                await setTimeout(err.retryAfterSeconds * 1000, undefined, {
+                    signal,
+                });
+            }
+        }
+    }
 }
