@@ -19,7 +19,7 @@ type WeatherResponse = {
     condition: string;
     humidity: number;
 };
-//TODO: Consider zod validation
+
 export async function fetchWeather(
     location: string,
     abortSignal: AbortSignal,
@@ -127,7 +127,6 @@ async function fetchElyosData(
             ]),
         });
     } catch (err) {
-        // TODO: Decide if we should throw when aborted or return Promise.reject
         if (abortSignal.aborted) throw err; // user cancelled: never retry
         throw new ElyosApiError(
             `Could not reach the Elyos API: ${(err as Error).message}`,

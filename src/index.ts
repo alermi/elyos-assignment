@@ -41,14 +41,14 @@ const tools: FunctionTool[] = [
         type: "function",
         name: RESEARCH_TOPIC_FUNCTION_NAME,
         description:
-            "Research a topic in depth. Takes 3-8 seconds. Use for questions requiring detailed research.",
+            "Research a topic in depth. Use for questions requiring detailed research.",
         parameters: {
             type: "object",
             properties: {
                 topic: {
                     type: "string",
                     description:
-                        "Topic to research, e.g. 'solar energy', 'climate change'",
+                        "Topic to research, e.g. 'solar energy', 'climate change', Must be less than 50 letters.",
                 },
             },
             required: ["topic"],
@@ -63,7 +63,6 @@ async function* callLlm(
     conversationHistory: OpenAI.Responses.ResponseInputItem[],
     signal: AbortSignal,
 ): AsyncGenerator<string> {
-    // TODO: stream from the LLM, run tool calls, pass `signal` to SDK + fetch
     conversationHistory.push({ role: "user", content: userInput });
 
     while (true) {
