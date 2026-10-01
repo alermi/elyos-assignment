@@ -2,6 +2,8 @@ import { stdin as input, stdout as output } from "node:process";
 import * as readline from "node:readline/promises";
 import OpenAI from "openai";
 import { toResponseInputItems } from "openai/lib/responses/ResponseInputItems.mjs";
+import { FunctionTool } from "openai/resources/responses/responses.mjs";
+import { fetchResearch, fetchWeather } from "./api";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 if (!OPENAI_API_KEY) {
@@ -13,13 +15,48 @@ const client = new OpenAI({ apiKey: OPENAI_API_KEY });
 // Placeholder shape; swap for the provider SDK's message type once chosen.
 type Message = { role: "user" | "assistant" | "tool"; content: string };
 
-const rl = readline.createInterface({ input, output });
+const GET_WEATHER_FUNCTION_NAME = "get_weather";
+const RESEARCH_TOPIC_FUNCTION_NAME = "research_topic";
 
-/** Get input from user. */
-async function getUserInput(): Promise<string> {
-    return rl.question("You: ");
-}
-
+const tools: FunctionTool[] = [
+    {
+        type: "function",
+        name: GET_WEATHER_FUNCTION_NAME,
+        description:
+            "Get current weather for a city. Vague input locations will produce vague results. You should always validate the location returned, to validate if it is indeed the location you asked for.",
+        parameters: {
+            type: "object",
+            properties: {
+                location: {
+                    type: "string",
+                    description: "City name, e.g. London, UK",
+                },
+            },
+            required: ["location"],
+            additionalProperties: false,
+        },
+        strict: true,
+    },
+    {
+        type: "function",
+        name: RESEARCH_TOPIC_FUNCTION_NAME,
+        description:
+            "Research a topic in depth. Takes 3-8 seconds. Use for questions requiring detailed research.",
+        parameters: {
+            type: "object",
+            properties: {
+                topic: {
+                    type: "string",
+                    description:
+                        "Topic to research, e.g. 'solar energy', 'climate change'",
+                },
+            },
+            required: ["topic"],
+            additionalProperties: false,
+        },
+        strict: true,
+    },
+];
 /** Send input to LLM, handle tool calls, yield streaming response. */
 async function* callLlm(
     userInput: string,
@@ -28,57 +65,96 @@ async function* callLlm(
 ): AsyncGenerator<string> {
     // TODO: stream from the LLM, run tool calls, pass `signal` to SDK + fetch
     conversationHistory.push({ role: "user", content: userInput });
-    const stream = await client.responses.create(
-        {
-            model: "gpt-6-astra",
-            input: conversationHistory,
-            stream: true,
-        },
-        { signal: signal },
-    );
 
-    // There can be multiple outputs when tool calls are involved.
-    let outputs: OpenAI.Responses.ResponseOutputItem[] = [];
-    for await (const event of stream) {
-        switch (event.type) {
-            case "response.output_text.delta":
-                yield event.delta;
-                break;
-            case "response.completed":
-                outputs = event.response.output;
-                break;
+    while (true) {
+        const stream = await client.responses.create(
+            {
+                model: "gpt-6-astra",
+                input: conversationHistory,
+                stream: true,
+                tools,
+            },
+            { signal: signal },
+        );
+
+        let outputs: OpenAI.Responses.ResponseOutputItem[] = [];
+        for await (const event of stream) {
+            switch (event.type) {
+                case "response.output_text.delta": {
+                    yield event.delta;
+                    break;
+                }
+                case "response.completed": {
+                    outputs = event.response.output;
+                    break;
+                }
+            }
         }
-    }
 
-    conversationHistory.push(...toResponseInputItems(outputs));
+        conversationHistory.push(...toResponseInputItems(outputs));
+
+        let calledTool = false;
+        for (const item of outputs) {
+            if (item.type !== "function_call") continue;
+
+            if (item.name === GET_WEATHER_FUNCTION_NAME) {
+                calledTool = true;
+                const { location } = JSON.parse(item.arguments);
+                //TODO: Error handling
+                const weatherOutput = await getWeather(location, signal);
+                const stringifiedOutput = JSON.stringify(weatherOutput);
+
+                conversationHistory.push({
+                    type: "function_call_output",
+                    call_id: item.call_id,
+                    output: stringifiedOutput,
+                });
+            }
+            if (item.name === RESEARCH_TOPIC_FUNCTION_NAME) {
+                calledTool = true;
+                const { topic } = JSON.parse(item.arguments);
+                //TODO: Error handling
+                const researchOutput = await researchTopic(topic, signal);
+                const stringifiedOutput = JSON.stringify(researchOutput);
+
+                conversationHistory.push({
+                    type: "function_call_output",
+                    call_id: item.call_id,
+                    output: stringifiedOutput,
+                });
+            }
+        }
+        // No need to loop back, no tool call was done.
+        if (!calledTool) return;
+    }
 }
 
 /** Fetch weather from API (~200ms). */
 async function getWeather(
     location: string,
-    signal?: AbortSignal,
+    signal: AbortSignal,
 ): Promise<unknown> {
     if (!location) {
         return {
             error: "Location is required",
         };
     }
-    // TODO
-    return {};
+    //TODO: Error handling
+    return fetchWeather(location, signal);
 }
 
 /** Research a topic (3-8 seconds). Should be cancellable. */
 async function researchTopic(
     topic: string,
-    signal?: AbortSignal,
+    signal: AbortSignal,
 ): Promise<unknown> {
     if (!topic) {
         return {
             error: "Topic is required",
         };
     }
-    // TODO
-    return {};
+    //TODO: Error handling
+    return fetchResearch(topic, signal);
 }
 
 const rl = readline.createInterface({ input, output });
@@ -112,8 +188,8 @@ async function main(): Promise<void> {
     rl.close();
 }
 
-main().catch(() => {
-    console.error("Unexpected error."); //let's not leak the error message for now it's unhandled
+main().catch((err) => {
+    console.error(err); //let's not leak the error message for now it's unhandled
     rl.close();
     process.exit(1);
 });
