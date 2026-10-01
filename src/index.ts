@@ -7,6 +7,7 @@ import {
     ElyosApiError,
     fetchResearch,
     fetchWeather,
+    RESEARCH_TOPIC_MAX_LENGTH,
     ResearchResponse,
     WeatherResponse,
     withRetry,
@@ -30,13 +31,18 @@ const tools: FunctionTool[] = [
         type: "function",
         name: GET_WEATHER_FUNCTION_NAME,
         description:
-            "Get current weather for a city. Vague input locations will produce vague results. You should always validate the location returned, to validate if it is indeed the location you asked for.",
+            "Get current weather (°C, condition, humidity) for one place. Returns {location, temperature_c, condition, humidity} or {error}. " +
+            "The returned `location` is the place actually matched and may differ from what you asked for: verify it and use your judgement to retry with a clearer location or tell the user. " +
+            "For ambiguous names (e.g. Paris, Springfield) the response cannot confirm which one was used, so state your assumption. " +
+            "Shares a rate limit (~5 calls per 30s) with research_topic; on a rate-limit error, tell the user instead of retrying.",
         parameters: {
             type: "object",
             properties: {
                 location: {
                     type: "string",
-                    description: "City name, e.g. London, UK",
+                    description:
+                        "City name, plus country or US state if ambiguous, e.g. 'London, UK', 'Paris, TX'. A US ZIP code also works. " +
+                        "Use the country name or code (UK, GB), never 'England' or 'Scotland'. No street addresses.",
                 },
             },
             required: ["location"],
@@ -48,14 +54,15 @@ const tools: FunctionTool[] = [
         type: "function",
         name: RESEARCH_TOPIC_FUNCTION_NAME,
         description:
-            "Research a topic in depth. Use for questions requiring detailed research.",
+            "Research a topic in depth. Slow (3-8s or more), so use only for questions that need detailed research, and call it once per topic. Returns {topic, summary, sources} or {error}. " +
+            "Base your answer on the summary and cite the sources; do not add details the summary does not contain. " +
+            "Shares a rate limit (~5 calls per 30s) with get_weather; on a rate-limit error, tell the user instead of retrying.",
         parameters: {
             type: "object",
             properties: {
                 topic: {
                     type: "string",
-                    description:
-                        "Topic to research, e.g. 'solar energy', 'climate change', Must be less than 50 letters.",
+                    description: `Short noun phrase, not a question, e.g. 'solar energy', 'lithium mining in Chile'. At most ${RESEARCH_TOPIC_MAX_LENGTH} characters; longer topics are rejected.`,
                 },
             },
             required: ["topic"],

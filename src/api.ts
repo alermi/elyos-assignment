@@ -55,13 +55,12 @@ export type ResearchResponse = {
 };
 
 // Longer topics are silently cut mid-word, and only the cut text is researched
-const RESEARCH_TOPIC_MAX_LENGTH = 50;
+export const RESEARCH_TOPIC_MAX_LENGTH = 50;
 
 export async function fetchResearch(
     topic: string,
     abortSignal: AbortSignal,
 ): Promise<ResearchResponse> {
-    // TODO: Instruct the agent of this max length before a tool call is made.
     if (topic.length > RESEARCH_TOPIC_MAX_LENGTH)
         throw new ElyosApiError(
             `Topic is too long (${topic.length} characters). Use ${RESEARCH_TOPIC_MAX_LENGTH} or fewer.`,
