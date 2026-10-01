@@ -114,6 +114,8 @@ async function* callLlm(
                 calledTool = true;
                 const { topic } = JSON.parse(item.arguments);
                 //TODO: Error handling
+
+                yield `Researching ${topic}... (Ctrl+C to cancel)\n`;
                 const researchOutput = await researchTopic(topic, signal);
                 const stringifiedOutput = JSON.stringify(researchOutput);
 
