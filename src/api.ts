@@ -150,6 +150,9 @@ async function fetchElyosData(
 const MAX_ATTEMPTS = 5;
 const MAX_WAIT_TIME_SECOND = 10;
 
+// Limitations:
+// - We are currently missing backoff.
+// - We do not make retries visible. It looks silently long
 export async function withRetry<T>(
     fn: () => Promise<T>,
     signal: AbortSignal,

@@ -68,6 +68,8 @@ const tools: FunctionTool[] = [
         strict: true,
     },
 ];
+
+// Limitiation: Tool calls run sequentially. Concurrent runs are not supported.
 /** Send input to LLM, handle tool calls, yield streaming response. */
 async function* callLlm(
     userInput: string,
@@ -88,6 +90,7 @@ async function* callLlm(
         );
 
         let outputs: OpenAI.Responses.ResponseOutputItem[] = [];
+        // Limitation: Partila responses are not saved to the history (for example, when we abort)
         for await (const event of stream) {
             switch (event.type) {
                 case "response.output_text.delta": {
@@ -192,6 +195,9 @@ async function getUserInput(): Promise<string> {
     return rl.question("You: ");
 }
 
+// Limitation: Currently, OpenAI (or any other unexpected error from APIs) end the session
+// instead of being caught. This can be improved, but all the 'discoverd' behaviors of the APIs
+// are currently covered.
 async function main(): Promise<void> {
     const conversationHistory: OpenAI.Responses.ResponseInputItem[] = [];
 
