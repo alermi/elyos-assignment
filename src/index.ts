@@ -141,8 +141,13 @@ async function getWeather(
             error: "Location is required",
         };
     }
-    //TODO: Error handling
-    return fetchWeather(location, signal);
+    try {
+        return await fetchWeather(location, signal);
+    } catch (err) {
+        if (signal.aborted) return { error: "Cancelled by the user" };
+        //TODO: Error handling
+        throw err;
+    }
 }
 
 /** Research a topic (3-8 seconds). Should be cancellable. */
@@ -155,8 +160,13 @@ async function researchTopic(
             error: "Topic is required",
         };
     }
-    //TODO: Error handling
-    return fetchResearch(topic, signal);
+    try {
+        return await fetchResearch(topic, signal);
+    } catch (err) {
+        if (signal.aborted) return { error: "Cancelled by the user" };
+        //TODO: Error handling
+        throw err;
+    }
 }
 
 const rl = readline.createInterface({ input, output });
@@ -169,21 +179,27 @@ async function getUserInput(): Promise<string> {
 async function main(): Promise<void> {
     const conversationHistory: OpenAI.Responses.ResponseInputItem[] = [];
 
+    let controller: AbortController | undefined;
+    rl.on("SIGINT", () => controller?.abort());
+
     while (true) {
         const userInput = await getUserInput();
         if (["quit", "exit", "q"].includes(userInput.trim().toLowerCase()))
             break;
 
-        // TODO: How do you handle cancellation while streaming?
-        // TODO: How do you show pending state during slow tool calls?
-        const controller = new AbortController();
-        for await (const chunk of callLlm(
-            userInput,
-            conversationHistory,
-            controller.signal,
-        )) {
-            output.write(chunk);
+        controller = new AbortController();
+        try {
+            for await (const chunk of callLlm(
+                userInput,
+                conversationHistory,
+                controller.signal,
+            )) {
+                output.write(chunk);
+            }
+        } catch (err) {
+            if (!controller.signal.aborted) throw err;
         }
+        if (controller.signal.aborted) output.write("\nCancelled (Ctrl + C)");
         output.write("\n");
     }
 
